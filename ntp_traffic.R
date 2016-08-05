@@ -32,7 +32,7 @@ ntp_traffic_dl <- function () {
     
     fname <- gsub(" ","_",gsub("/|:","",csv.df$datacollecttime[1]))
     
-    write.csv(csv.df,paste0("./ntp_traffic_data/",fname,".csv"),col.names = NA,row.names=FALSE)
+    write.csv(csv.df,paste0("./ntp_traffic_data/",fname,".csv"),row.names=FALSE)
     
     print(fname)
 }
