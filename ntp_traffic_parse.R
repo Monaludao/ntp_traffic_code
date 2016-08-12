@@ -46,8 +46,21 @@ traffic_data_compile<-function(){
   cast.df<-dcast(melt.df, vdid+holiday+time+carid ~ variable, mean)
   #count.cast<-dcast(melt.df, vdid+holiday+time+vsrdir+carid ~ variable, sum)[c(1:5,8)]
   count.cast<-dcast(melt.df, vdid+holiday+time+carid ~ variable, sum)[c(1:4,7)]
+  
+  total.cast<-dcast(melt.df, vdid+time+carid~variable,mean)
+  total.cast$holiday=3
+  total.cast<-data.frame(total.cast[c(1)],total.cast$holiday,total.cast[c(2:6)])
+  colnames(total.cast)<-colnames(cast.df)
+  total.count<-dcast(melt.df, vdid+time+carid ~ variable, sum)[c(1:3,6)]
+  
+  #cast.df<-rbind(cast.df,total.cast)
+  
   #output.df<-data.frame(cast.df[c(1:7)],count.cast[c(6)])
-  output.df<-data.frame(cast.df[c(1:7)],count.cast[c(5)])
+  #output.df<-data.frame(cast.df[c(1:7)],count.cast[c(5)])
+  output.df1<-data.frame(cast.df[c(1:7)],count.cast[c(5)])
+  output.df2<-data.frame(total.cast[c(1:7)],total.count[c(4)])
+  
+  output.df<-rbind(output.df1,output.df2)
   
   print("exporting...")
   output.name<-format(Sys.time(),"%Y%m%d%H%M")
@@ -60,6 +73,7 @@ traffic_data_compile<-function(){
 traffic_graph<-function(vdid,carid){
   library(ggplot2)
   options(stringsAsFactors = FALSE)
+  options(digits=3)
  
   if(is.null(vdid)) stop("please input vdid")
   
@@ -70,8 +84,32 @@ traffic_graph<-function(vdid,carid){
   output.df<-read.csv(paste0(output.path,output.name))
   parse.df<-output.df[output.df$vdid==vdid,]
   parse.df<-parse.df[parse.df$carid==carid,]
+  if(nrow(parse.df)==0) stop("carid not found")
+  parse.df<-parse.df[!(parse.df$holiday==3),]
+  parse.df<-parse.df[!(substr(parse.df$time,5,5)==3),]
   parse.df$time<-ordered(as.factor(parse.df$time))
   parse.df$time_o<-as.numeric(parse.df$time)
+  
+  #time.level<-levels(parse.df$time)
+  
+  #for (i in 1:length(time.level)) {
+    #time.df<-parse.df[parse.df$time==time.level[i],]
+    #if (!is.null(time.df)) {
+      #new.df<-data.frame(99999,
+                         #vdid,
+                         #3,
+                         #time.level[i],
+                         #carid,
+                         #round(mean(as.numeric(time.df$speed)),digits=3),
+                         #round(sum(as.numeric(time.df$volume)),digits=3),
+                         #round(sum(as.numeric(time.df$count)),digits=3),
+                         #round(sum(as.numeric(time.df$count.1)),digits=3),
+                         #time.df$time_o[1])
+      #colnames(new.df)<-colnames(parse.df)
+      #parse.df<-rbind(parse.df,new.df)
+    #}
+  #}
+  
   parse.df$holiday<-as.factor(parse.df$holiday)
   
   bks<-c(seq(1,288,12),288)
@@ -83,14 +121,14 @@ traffic_graph<-function(vdid,carid){
   scale.x.setup<-scale_x_continuous(breaks=bks,labels=lbs)
   legend.setup<-theme(legend.position = c(.88, .85),legend.title=element_blank(),legend.background=element_rect(color="#dddddd"))
   
-  parameter.df<-data.frame(item=c("speed","volume"),ymin=c(0,-5),ymax=c(60,10),stringsAsFactors = FALSE)
+  parameter.df<-data.frame(item=c("speed","volume"),ymin=c(0,0),ymax=c(60,15),stringsAsFactors = FALSE)
   
   for(i in 1:2){
     graph.df<-data.frame(x=parse.df$time_o,y=parse.df[,parameter.df[i,1]],holiday=parse.df$holiday)
   
     lab.setup<-labs(list(x = "Time", y = parameter.df[i,1]))
       
-    g<-ggplot(graph.df,aes(x,y,color=factor(holiday,labels=c("Workdays","Holidays"))))
+    g<-ggplot(graph.df,aes(x,y,color=factor(holiday,labels=c("Workdays","Holidays"))))#,"Total"))))
     if(length(lowcount.holidays)!=0) g<-g+annotate("rect", fill="#009e73",xmin = lowcount.holidays-.2, xmax = lowcount.holidays+.2, ymin = parameter.df[i,2], ymax = parameter.df[i,3],alpha = .1)
     if(length(lowcount.workdays)!=0) g<-g+annotate("rect", fill="red",xmin = lowcount.workdays-.2, xmax = lowcount.workdays+.2, ymin = parameter.df[i,2], ymax = parameter.df[i,3],alpha = .1)
     g<-g+geom_point(size=.8,alpha=.2)
