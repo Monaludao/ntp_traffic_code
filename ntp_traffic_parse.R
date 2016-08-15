@@ -87,6 +87,7 @@ traffic_graph<-function(vdid,carid){
   if(nrow(parse.df)==0) stop("carid not found")
   parse.df<-parse.df[!(parse.df$holiday==3),]
   parse.df<-parse.df[!(substr(parse.df$time,5,5)==3),]
+  parse.df<-parse.df[!(substr(parse.df$time,5,5)==8),]
   parse.df$time<-ordered(as.factor(parse.df$time))
   parse.df$time_o<-as.numeric(parse.df$time)
   
